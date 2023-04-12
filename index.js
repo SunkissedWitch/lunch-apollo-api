@@ -6,6 +6,7 @@ const app = express()
 const prisma = new PrismaClient()
 const jwt = require('jsonwebtoken')
 const cors = require('cors')
+require('dotenv').config()
 
 app.use(express.json())
 app.use(cors())
