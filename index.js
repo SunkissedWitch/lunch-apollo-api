@@ -81,7 +81,7 @@ app.get('/users', isAuthorized, async (req, res) => {
   }
 })
 
-app.listen(3000)
+const server = app.listen(process.env.PORT)
 
 const shutDown = async () => {
   await prisma.$disconnect();

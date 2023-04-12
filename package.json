@@ -3,6 +3,11 @@
   "main": "index.js",
   "author": "Dmytro Oplachko",
   "license": "MIT",
+  "scripts": {
+    "start": "node index.js",
+    "start:dev": "nodemon index.js",
+    "prisma:studio": "yarn prisma studio"
+  },
   "dependencies": {
     "@prisma/client": "^4.12.0",
     "cors": "^2.8.5",
