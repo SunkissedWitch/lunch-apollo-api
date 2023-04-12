@@ -12,8 +12,13 @@ app.use(cors())
 
 const isAuthorized = (req, res, next) => {
   try {
-    const { authorization } = req.headers
-    const [, token] = authorization.split(' ')
+    const { authorization } = req.headers;
+
+    if (!authorization) {
+      return res.status(403).json({ message: 'Unauthorized' })
+    }
+
+    const [, token] = authorization.split(' ');
 
     if (!jwt.verify(token, process.env.JWT_KEY)) {
       return res.status(403)
@@ -65,6 +70,10 @@ app.post('/users/login', async (req, res) => {
   }
 })
 
+app.get('/', async (req, res) => {
+  return res.status(200).json({ "route": "index" });
+})
+
 app.get('/users', isAuthorized, async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -81,7 +90,9 @@ app.get('/users', isAuthorized, async (req, res) => {
   }
 })
 
-const server = app.listen(process.env.PORT)
+const server = app.listen(process.env.PORT, () => {
+  console.log(`App listening on port ${process.env.PORT}`)
+})
 
 const shutDown = async () => {
   await prisma.$disconnect();
