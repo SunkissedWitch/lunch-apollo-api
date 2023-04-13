@@ -43,7 +43,10 @@ app.post('/users/create', async (req, res) => {
       },
     });
 
-    return res.status(200).json({ messsage: 'user created', user: _.omit(newUser, 'password') })
+    return res.status(200).json({
+      message: 'user created',
+      user: _.omit(newUser, 'password')
+    })
   } catch (err) {
     console.log('[error]', err)
     res.status(500).json({ message: err.message })
