@@ -26,6 +26,7 @@ model Order {
   createdAt DateTime @default(now())
 
   text String
+  price Float
 
   userId Int
   user User @relation(fields: [userId], references: [id])
