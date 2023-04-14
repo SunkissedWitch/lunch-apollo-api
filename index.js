@@ -95,7 +95,7 @@ app.get("/users", isAuthorized, async (req, res) => {
   }
 });
 
-app.post("/orders/create", isAuthorized, async (req, res) => {
+app.post("/orders", isAuthorized, async (req, res) => {
   try {
     const { order, price } = req.body;
     const { id } = req.user;
@@ -152,10 +152,10 @@ app.get("/orders/users", isAuthorized, async (req, res) => {
 })
 
 app.get("/orders/users/:userId", isAuthorized, async (req, res) => {
-  const { userId } = req.params
-  console.log('[userId]', userId)
-  const parsedId = _.parseInt(userId)
   try {
+    const { userId } = req.params
+    const parsedId = _.parseInt(userId)
+
     const orders = await prisma.order.findMany({
       where: {
         userId: parsedId
