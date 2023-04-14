@@ -85,10 +85,18 @@ app.get("/users", isAuthorized, async (req, res) => {
       select: {
         email: true,
         username: true,
+        _count: {
+          select: { orders: true },
+        }
       },
     });
-
-    return res.status(200).json(users);
+    const flattenedUsers = _.map(users, (user) => (user = {
+      email: user.email,
+      username: user.username,
+      orders: user._count.orders
+    }))
+    // console.log('flatten', flatten)
+    return res.status(200).json(flattenedUsers);
   } catch (err) {
     console.log("[error]", err);
     res.status(500).json({ message: err.message });
