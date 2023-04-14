@@ -27,5 +27,23 @@
 
 **GET** `/users`
 
+**POST** `/orders/create`
+
+```
+{
+  order: String,
+  price: Float,
+}
+```
+
+**GET** `/orders`
+*Get all orders*
+
+**GET** `/orders/users`
+*Get all users with grouped by orders*
+
+**GET** `/orders/users/:userId`
+*Get all orders by one user*
+
 *Headers*:
   ```Authorization: Bearer <token>```

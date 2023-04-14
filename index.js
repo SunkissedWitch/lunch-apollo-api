@@ -95,7 +95,7 @@ app.get("/users", isAuthorized, async (req, res) => {
   }
 });
 
-app.post("/order/create", isAuthorized, async (req, res) => {
+app.post("/orders/create", isAuthorized, async (req, res) => {
   try {
     const { order, price } = req.body;
     const { id } = req.user;
@@ -116,6 +116,57 @@ app.post("/order/create", isAuthorized, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+app.get("/orders", isAuthorized, async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: {
+          select: {
+            username: true
+          }
+        }
+      }
+    })
+    return res.status(200).json(orders);
+  } catch (err) {
+    console.log("[error]", err);
+    res.status(500).json({ message: err.message });
+  }
+})
+
+app.get("/orders/users", isAuthorized, async (req, res) => {
+  try {
+    const orders = await prisma.user.findMany({
+      select: {
+        username: true,
+        id: true,
+        orders: true
+      }
+    })
+    return res.status(200).json(orders);
+  } catch (err) {
+    console.log("[error]", err);
+    res.status(500).json({ message: err.message });
+  }
+})
+
+app.get("/orders/users/:userId", isAuthorized, async (req, res) => {
+  const { userId } = req.params
+  console.log('[userId]', userId)
+  const parsedId = _.parseInt(userId)
+  try {
+    const orders = await prisma.order.findMany({
+      where: {
+        userId: parsedId
+      }
+    })
+    return res.status(200).json(orders);
+  } catch (err) {
+    console.log("[error]", err);
+    res.status(500).json({ message: err.message });
+  }
+})
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`App listening on port ${process.env.PORT}`);
