@@ -13,11 +13,12 @@ datasource db {
 model User {
   id Int @id @default(autoincrement())
 
-  email String @unique
+  email    String @unique
   username String
   password String
 
-  orders Order[]
+  orders  Order[]
+  answers Answer[]
 }
 
 model Order {
@@ -25,9 +26,40 @@ model Order {
 
   createdAt DateTime @default(now())
 
-  text String
+  text  String
   price Float
 
   userId Int
-  user User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model Restaurant {
+  id      Int      @id @default(autoincrement())
+  
+  name    String   @unique
+  polls   Poll[]
+  answers Answer[]
+}
+
+model Poll {
+  id Int @id @default(autoincrement())
+
+  dateStart             DateTime
+  dueDate               DateTime?
+  available_restaurants Restaurant[]
+  winner                Int
+  answers               Answer[]
+}
+
+model Answer {
+  id Int @id @default(autoincrement())
+
+  pollId Int
+  poll   Poll @relation(fields: [pollId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 }
