@@ -5,6 +5,7 @@ const { hashPassword, verifyPassword } = require("./utils/hash");
 const app = express();
 const prisma = new PrismaClient();
 const jwt = require("jsonwebtoken");
+const dayjs = require("dayjs");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -172,6 +173,43 @@ app.get("/orders/users/:userId", isAuthorized, async (req, res) => {
     return res.status(200).json(orders);
   } catch (err) {
     console.log("[error]", err);
+    res.status(500).json({ message: err.message });
+  }
+})
+
+// type DateTimeFilter {
+//   equals?: DateTime
+//   in?: List<DateTime>
+//   notIn?: List<DateTime>
+//   lt?: DateTime
+//   lte?: DateTime
+//   gt?: DateTime
+//   gte?: DateTime
+//   not?: DateTime | NestedDateTimeFilter
+// }
+
+app.get("/polls", isAuthorized, async (req, res) => {
+  try {
+    const today = dayjs().format('YYYY-MM-DD')
+    const date = req.body.date || today
+    const timestamp = new Date(date)
+    const ltDate = dayjs(date).add(1, 'day')
+
+    const polls = await prisma.poll.findMany({
+      include: {
+        available_restaurants: true
+      },
+      where: {
+        dateStart: {
+          gte: timestamp,
+          lt: new Date(ltDate)
+        }
+      }
+    })
+
+    return res.status(200).json(polls)
+  } catch (err) {
+    console.log("[/polls][error]", err);
     res.status(500).json({ message: err.message });
   }
 })
