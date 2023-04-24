@@ -5,6 +5,7 @@ const { hashPassword, verifyPassword } = require("./utils/hash");
 const app = express();
 const prisma = new PrismaClient();
 const jwt = require("jsonwebtoken");
+const { CronJob } = require('cron');
 const dayjs = require("dayjs");
 const cors = require("cors");
 require("dotenv").config();
@@ -191,7 +192,7 @@ app.get("/orders/users/:userId", isAuthorized, async (req, res) => {
 app.get("/polls", isAuthorized, async (req, res) => {
   try {
     const today = dayjs().format('YYYY-MM-DD')
-    const date = req.body.date || today
+    const date = req.query.date || today
     const timestamp = new Date(date)
     const ltDate = dayjs(date).add(1, 'day')
 
@@ -213,6 +214,155 @@ app.get("/polls", isAuthorized, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 })
+
+const job = new CronJob(
+  '*/1 * * * *',
+  async function() {
+    const currentTime = new Date()
+    const polls = await prisma.poll.findMany({
+      include: {
+        answers: true,
+      },
+      where: {
+        AND: [
+          {
+            dueDate: {
+              lte: currentTime,
+            },
+          },
+          {
+            isClosed: {
+              equals: false
+            }
+          }
+        ],
+      },
+    });
+    console.log('[cron polls]', polls)
+    polls.forEach(async (poll) => {
+      try {
+        const { answers, id } = poll
+        console.log('[ANSWERS]', id, answers)
+        // =========== Lodash variant ============
+        if (!answers?.length) {
+          console.log('no answers');
+          try {
+            const result = await prisma.poll.update({
+              where: {
+                id: id
+              },
+              data: {
+                isClosed: true,
+                winner: undefined
+              }
+            })
+            console.log('[update result with undefined]', result)
+            return result;
+          } catch (error) {
+            console.log('[no answers update][error]', error.message);
+          }
+        };
+        const countAnswers = _.chain(answers)
+          .countBy('restaurantId')
+          .toPairs()
+          .maxBy(([_key, value]) => (value))
+          .value()
+        console.log('[groupedAnswers]', countAnswers)
+          if (countAnswers.length) {
+            const winnerId = _.parseInt(countAnswers[0], 10)
+            try {
+              const result = await prisma.poll.update({
+                where: {
+                  id: id
+                },
+                data: {
+                  isClosed: true,
+                  winner: winnerId
+                }
+              })
+              console.log('[update result with an answers result]', result);
+              return result;
+            } catch (error) {
+              console.log('[no answers update][error]', error.message);
+            }
+          };
+
+        // ============= DB variant ==============
+        // const countAnswers = await prisma.answer.groupBy({
+        //   by: ['restaurantId'],
+        //   where: {
+        //     pollId: {
+        //       equals: id
+        //     }
+        //   },
+        //   _count: {
+        //     restaurantId: true,
+        //   },
+        //   orderBy: {
+        //     _count: {
+        //       restaurantId: 'desc',
+        //     },
+        //   },
+        // })
+        // if (!countAnswers.length) {
+        //   console.log('no answers');
+        //   try {
+        //     const result = await prisma.poll.update({
+        //       where: {
+        //         id: id
+        //       },
+        //       data: {
+        //         isClosed: true,
+        //         winner: undefined
+        //       }
+        //     })
+        //     console.log('[update result with undefined]', result)
+        //     return result;
+        //   } catch (error) {
+        //     console.log('[no answers update][error]', error.message);
+        //   }
+        // };
+        // if (countAnswers.length) {
+        //   try {
+        //     const result = await prisma.poll.update({
+        //       where: {
+        //         id: id
+        //       },
+        //       data: {
+        //         isClosed: true,
+        //         winner: countAnswers[0].restaurantId
+        //       }
+        //     })
+        //     console.log('[update result with an answers result]', result);
+        //     return result;
+        //   } catch (error) {
+        //     console.log('[no answers update][error]', error.message);
+        //   }
+        // };
+      } catch (err) {
+        console.log('[answers][error]', err.message);
+      }
+    })
+
+    // console.log('You will see this message every minute');
+  },
+  null,
+  true,
+  'Europe/Kiev'
+);
+// Use this if the 4th param is default value(false)
+// job.start()
+// job.stop()
+
+// app.post("/polls/:id/answer", isAuthorized, async (req, res) => {
+//   try {
+//     const { id } = req.params
+//     const winner = req.body
+//   } catch (err) {
+//     console.log("[/polls/:id/answer][error]", err);
+//     res.status(500).json({ message: err.message });
+//   }
+// })
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`App listening on port ${process.env.PORT}`);

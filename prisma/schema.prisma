@@ -34,8 +34,8 @@ model Order {
 }
 
 model Restaurant {
-  id      Int      @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   name    String   @unique
   polls   Poll[]
   answers Answer[]
@@ -44,11 +44,12 @@ model Restaurant {
 model Poll {
   id Int @id @default(autoincrement())
 
-  dateStart             DateTime
+  dateStart             DateTime     @default(now())
   dueDate               DateTime?
   available_restaurants Restaurant[]
   winner                Int
   answers               Answer[]
+  isClosed              Boolean?     @default(false)
 }
 
 model Answer {
