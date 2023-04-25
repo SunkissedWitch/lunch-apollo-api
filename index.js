@@ -214,7 +214,7 @@ app.get("/polls", isAuthorized, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 })
-
+// ===== Close poll when dueDate is expired ========
 const job = new CronJob(
   '*/1 * * * *',
   async function() {
@@ -246,99 +246,38 @@ const job = new CronJob(
         // =========== Lodash variant ============
         if (!answers?.length) {
           console.log('no answers');
-          try {
-            const result = await prisma.poll.update({
-              where: {
-                id: id
-              },
-              data: {
-                isClosed: true,
-                winner: undefined
-              }
-            })
-            console.log('[update result with undefined]', result)
-            return result;
-          } catch (error) {
-            console.log('[no answers update][error]', error.message);
-          }
+          const result = await prisma.poll.update({
+            where: {
+              id: id
+            },
+            data: {
+              isClosed: true,
+              winner: undefined
+            }
+          })
+          console.log('[update result with undefined]', result)
+          return result
         };
         const countAnswers = _.chain(answers)
           .countBy('restaurantId')
           .toPairs()
           .maxBy(([_key, value]) => (value))
           .value()
-        console.log('[groupedAnswers]', countAnswers)
-          if (countAnswers.length) {
-            const winnerId = _.parseInt(countAnswers[0], 10)
-            try {
-              const result = await prisma.poll.update({
-                where: {
-                  id: id
-                },
-                data: {
-                  isClosed: true,
-                  winner: winnerId
-                }
-              })
-              console.log('[update result with an answers result]', result);
-              return result;
-            } catch (error) {
-              console.log('[no answers update][error]', error.message);
+        console.log('[countAnswers]', countAnswers)
+        if (countAnswers.length) {
+          const winnerId = _.parseInt(countAnswers[0], 10)
+          const result = await prisma.poll.update({
+            where: {
+              id: id
+            },
+            data: {
+              isClosed: true,
+              winner: winnerId
             }
-          };
-
-        // ============= DB variant ==============
-        // const countAnswers = await prisma.answer.groupBy({
-        //   by: ['restaurantId'],
-        //   where: {
-        //     pollId: {
-        //       equals: id
-        //     }
-        //   },
-        //   _count: {
-        //     restaurantId: true,
-        //   },
-        //   orderBy: {
-        //     _count: {
-        //       restaurantId: 'desc',
-        //     },
-        //   },
-        // })
-        // if (!countAnswers.length) {
-        //   console.log('no answers');
-        //   try {
-        //     const result = await prisma.poll.update({
-        //       where: {
-        //         id: id
-        //       },
-        //       data: {
-        //         isClosed: true,
-        //         winner: undefined
-        //       }
-        //     })
-        //     console.log('[update result with undefined]', result)
-        //     return result;
-        //   } catch (error) {
-        //     console.log('[no answers update][error]', error.message);
-        //   }
-        // };
-        // if (countAnswers.length) {
-        //   try {
-        //     const result = await prisma.poll.update({
-        //       where: {
-        //         id: id
-        //       },
-        //       data: {
-        //         isClosed: true,
-        //         winner: countAnswers[0].restaurantId
-        //       }
-        //     })
-        //     console.log('[update result with an answers result]', result);
-        //     return result;
-        //   } catch (error) {
-        //     console.log('[no answers update][error]', error.message);
-        //   }
-        // };
+          })
+          console.log('[update result with an answers result]', result);
+          return result;
+        };
       } catch (err) {
         console.log('[answers][error]', err.message);
       }
@@ -353,16 +292,40 @@ const job = new CronJob(
 // Use this if the 4th param is default value(false)
 // job.start()
 // job.stop()
+// =======================================================
 
-// app.post("/polls/:id/answer", isAuthorized, async (req, res) => {
-//   try {
-//     const { id } = req.params
-//     const winner = req.body
-//   } catch (err) {
-//     console.log("[/polls/:id/answer][error]", err);
-//     res.status(500).json({ message: err.message });
-//   }
-// })
+app.post("/polls/:pollId/answer", isAuthorized, async (req, res) => {
+  try {
+    const { pollId } = req.params
+    const { answer } = req.body
+    const { id: userId } = req.user
+    const parsed_pollId = _.parseInt(pollId, 10)
+    const parsed_userId = _.parseInt(userId, 10)
+    const parsed_answer = _.parseInt(answer, 10)
+    const newAnswer = await prisma.answer.upsert({
+      create: {
+        pollId: parsed_pollId,
+        userId: parsed_userId,
+        restaurantId: parsed_answer
+      },
+      update: {
+        restaurantId: parsed_answer
+      },
+      where: {
+        // require unique value - how we can avoid it with AND condition?
+        AND: {
+          pollId: parsed_pollId,
+          userId: parsed_userId
+        }
+      }
+    })
+    console.log('[/polls/:id/answer] [response]', newAnswer)
+    res.status(200).json(newAnswer);
+  } catch (err) {
+    console.log("[/polls/:id/answer][error]", err);
+    res.status(500).json({ message: err.message });
+  }
+})
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`App listening on port ${process.env.PORT}`);
