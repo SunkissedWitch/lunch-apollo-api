@@ -45,5 +45,19 @@
 **GET** `/orders/users/:userId`
 *Get all orders by one user*
 
+**GET** `/polls?date=YYYY-MM-DD` 
+*Get all polls by date or today polls by default, if queries is not provided*
+
+**GET** `/polls/:pollId`
+*Get unique poll by id*
+
+**POST** `/polls/:pollId/answer`
+```
+{
+  answer: Int | String (restaurantId)
+}
+```
+*Creates or updates user's answer with restaurantId for poll*
+
 *Headers*:
   ```Authorization: Bearer <token>```

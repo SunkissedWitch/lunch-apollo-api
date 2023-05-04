@@ -214,6 +214,27 @@ app.get("/polls", isAuthorized, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 })
+
+app.get("/polls/:pollId", isAuthorized, async (req, res) => {
+  try {
+    const { pollId } = req.params
+    const parsedId = _.parseInt(pollId, 10)
+
+    const poll = await prisma.poll.findUnique({
+      include: {
+        available_restaurants: true
+      },
+      where: {
+        id: parsedId
+      }
+    })
+
+    return res.status(200).json(poll)
+  } catch (err) {
+    console.log("[/polls/:pollId][error]", err);
+    res.status(500).json({ message: err.message });
+  }
+})
 // ===== Close poll when dueDate is expired ========
 const job = new CronJob(
   '*/1 * * * *',
@@ -286,11 +307,12 @@ const job = new CronJob(
     // console.log('You will see this message every minute');
   },
   null,
-  true,
+  // true,
+  false,
   'Europe/Kiev'
 );
 // Use this if the 4th param is default value(false)
-// job.start()
+job.start()
 // job.stop()
 // =======================================================
 
@@ -312,10 +334,9 @@ app.post("/polls/:pollId/answer", isAuthorized, async (req, res) => {
         restaurantId: parsed_answer
       },
       where: {
-        // require unique value - how we can avoid it with AND condition?
-        AND: {
+        answerId_by_poll: {
           pollId: parsed_pollId,
-          userId: parsed_userId
+          userId: parsed_userId,
         }
       }
     })

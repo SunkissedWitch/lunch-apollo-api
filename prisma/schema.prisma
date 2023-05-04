@@ -63,4 +63,6 @@ model Answer {
 
   restaurantId Int
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@unique([pollId, userId], name: "answerId_by_poll")
 }
