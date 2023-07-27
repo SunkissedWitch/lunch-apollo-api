@@ -1,15 +1,10 @@
 import express from "express";
-import { PrismaClient } from "@prisma/client";
 import _ from "lodash";
 // const { hashPassword, verifyPassword } from ("./utils/hash");
-const prisma = new PrismaClient();
-// const jwt from ("jsonwebtoken");
 // const { CronJob } from ('cron');
 // const dayjs from ("dayjs");
 import cors from "cors";
 import dotenv from 'dotenv'
-// import { config } from 'dotenv';
-// npm install @apollo/server express graphql cors body-parser
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -17,9 +12,10 @@ import http from 'http';
 import bodyParser from 'body-parser';
 import { typeDefs } from './graphql/typeDefs.js';
 import { resolvers } from './graphql/resolvers.js';
-// dotenv.config()
-// console.log('[DATABASE_URL]', process.env?.DATABASE_URL)
-// Required logic for integrating with Express
+import { GraphQLError } from 'graphql';
+import { getUser } from "./utils/isAuthorized.js";
+
+dotenv.config()
 const app = express();
 // Our httpServer handles incoming requests to our Express app.
 // Below, we tell Apollo Server to "drain" this httpServer,
@@ -45,7 +41,45 @@ app.use(
   // expressMiddleware accepts the same arguments:
   // an Apollo Server instance and optional configuration options
   expressMiddleware(server, {
-    context: async ({ req }) => ({ token: req.headers.token }),
+    context: async ({ req }) => {
+      // get the user token from the headers
+      const token = req.headers.authorization || '';
+
+      if (!token?.length) {
+        throw new GraphQLError('Unauthorized', {
+          extensions: {
+            code: 'Unauthorized',
+            http: { status: 403 },
+          },
+        });
+      }
+
+      // try to retrieve a user with the token
+      const user = getUser(token);
+  
+      // optionally block the user
+      // we could also check user roles/permissions here
+      if (!user)
+        // throwing a `GraphQLError` here allows us to specify an HTTP status code,
+        // standard `Error`s will have a 500 status code by default
+        throw new GraphQLError('User is not authenticated', {
+          extensions: {
+            code: 'UNAUTHENTICATED',
+            http: { status: 401 },
+          },
+        });
+      // if (user.id === 3) {
+      //   throw new GraphQLError(`${user.username} go home %)`, {
+      //     extensions: {
+      //       code: 'Banned user',
+      //       http: { status: 401 },
+      //     },
+      //   });
+      // }
+      // console.log('[user]', user)
+      // add the user to the context
+      return { user };
+    },
   }),
 );
 
@@ -53,30 +87,6 @@ app.use(
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
 
 console.log(`🚀 Server ready at http://localhost:4000/`);
-
-// app.use(express.json());
-// app.use(cors());
-
-// const isAuthorized = (req, res, next) => {
-//   try {
-//     const { authorization } = req.headers;
-
-//     if (!authorization) {
-//       return res.status(403).json({ message: "Unauthorized" });
-//     }
-
-//     const [, token] = authorization.split(" ");
-//     const user = jwt.verify(token, process.env.JWT_KEY);
-//     if (!user) {
-//       return res.status(403);
-//     }
-//     req.user = user;
-//     next();
-//   } catch (err) {
-//     console.log("[error][isAuthorized]", err);
-//     return res.status(403).json({ message: err.message });
-//   }
-// };
 
 // app.post("/users/create", async (req, res) => {
 //   try {

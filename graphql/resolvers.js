@@ -1,25 +1,60 @@
 import { PrismaClient } from "@prisma/client";
 import _ from "lodash";
+import { DateTimeResolver } from 'graphql-scalars';
 
 const prisma = new PrismaClient();
 // console.log('prisma', prisma.$connect)
 export const resolvers = {
   Query: {
-    users: () => users,
+    allUsers: async (_parent, _args, contextValue) => {
+      // In this case, we'll pretend there is no data when
+      // we're not logged in. Another option would be to
+      // throw an error.
+      if (!contextValue.user) return null;
+      // Todo: you can add here logic with user role
+
+      const users = await prisma.user.findMany()
+      return _.map(users, (user) => (_.omit(user, ['password'])))
+    },
+    usersWithOrders: async(_parent, _args, contextValue) => {
+      const users = await prisma.user.findMany({
+        select: {
+          email: true,
+          username: true,
+          orders: true,
+          // _count: {
+          //   select: { orders: true },
+          // }
+        },
+      })
+      return users
+    },
+    orders: () => orders,
+    
     // authors: () => authors
   },
+  DateTime: DateTimeResolver,
 };
 
+  // const users = await prisma.user.findMany({
+  //   select: {
+  //     email: true,
+  //     username: true,
+  //     orders: true,
+  //     // _count: {
+  //     //   select: { orders: true },
+  //     // }
+  //   },
+  // });
+  // console.log('[users]', users)
 
-    const users = await prisma.user.findMany({
-      select: {
-        email: true,
-        username: true,
-        _count: {
-          select: { orders: true },
-        }
-      },
-    });
+
+  const orders = await prisma.order.findMany({
+    include: {
+      user: true
+    }
+  });
+  // console.log('[orders]', orders)
 
     // const flattenedUsers = _.map(users, (user) => (user = {
     //   email: user.email,

@@ -18,7 +18,7 @@ export const typeDefs = `#graphql
 
   type Order {
     id: Int
-    # createdAt: DateTime
+    createdAt: DateTime
     text: String
     price: Float
     userId: Int
@@ -44,8 +44,8 @@ export const typeDefs = `#graphql
 
   type Poll {
     id: Int
-    # dateStart: DateTime
-    # dueDate: DateTime
+    dateStart: DateTime
+    dueDate: DateTime
     available_restaurants: [Restaurant]
     winner: Int
     answers: [Answer]
@@ -56,6 +56,9 @@ export const typeDefs = `#graphql
   # clients can execute, along with the return type for each. In this
   # case, the "books" query returns an array of zero or more Books (defined above).
   type Query {
-    users: [User]
+    allUsers: [User]
+    orders: [Order]
+    usersWithOrders: [User]
   }
+  scalar DateTime
 `;

@@ -6,3 +6,40 @@ type User {
   orders: [Order]
   answers: [Answer]
 }
+
+type Order {
+  id: Int
+  createdAt: DateTime
+  text: String
+  price: Float
+  userId: Int
+  user: User
+}
+
+type Answer {
+  id: Int
+  pollId: Int
+  poll: Poll
+  userId: Int
+  user: User
+  restaurantId: Int
+  restaurant: Restaurant
+}
+
+type Restaurant {
+  id: Int
+  name: String
+  polls: [Poll]
+  answers: [Answer]
+}
+
+type Poll {
+  id: Int
+  dateStart: DateTime
+  dueDate: DateTime
+  available_restaurants: [Restaurant]
+  winner: Int
+  answers: [Answer]
+  isClosed: Boolean
+}
+scalar DateTime
